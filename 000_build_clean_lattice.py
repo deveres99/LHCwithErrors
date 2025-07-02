@@ -54,7 +54,7 @@ for line in env.lines.values():
 
 
 # Save the environment
-env.to_json('injection_clean.json')
+env.to_json('lattices/injection_clean.json')
 
 
 print(f"Building took {time.time() - start:.2f} seconds")
