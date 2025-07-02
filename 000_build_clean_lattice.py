@@ -28,6 +28,7 @@ env.vars.default_to_zero = False
 for line in env.lines.values():
     line.particle_ref = xt.Particles.reference_from_pdg_id('proton', p0c=config['knob_settings']['nrj']*1e9)
     line.twiss_default["co_search_at"] = "ip7"
+    line.twiss_default["method"] = "4d"
     if "b2" in line.name:
         line.twiss_default["reverse"] = True
 set_cavity_frequency(env)
