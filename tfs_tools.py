@@ -91,9 +91,9 @@ def store_mb_errors(env):
                     ksli = ksl[i] if i < len(ksl) else 0.0
                     mess += f'     {_format_fortran_float(knli)}     {_format_fortran_float(ksli)}'
                 lines.append(mess)
-    Path('temp').mkdir(parents=True, exist_ok=True)
-    with Path(f'temp/MB_{linename}.errors').open('w') as fp:
-        fp.write('\n'.join(lines) + '\n')
+        Path('temp').mkdir(parents=True, exist_ok=True)
+        with Path(f'temp/MB_{linename}.errors').open('w') as fp:
+            fp.write('\n'.join(lines) + '\n')
 
 
 def _format_fortran_float(value, n_digits=14):
