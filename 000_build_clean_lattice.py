@@ -11,10 +11,13 @@ from slice_tools import slice_env
 from tuning_tools import inj_settings_clean, tune_line
 
 
+# Paths
 acc_models = Path("/eos/project-c/collimation-team/machine_configurations/acc-models/lhc/2025")
 optics = Path("/afs/cern.ch/eng/lhc/optics/runIII/RunIII_dev")
 scenarios = Path("/eos/project-c/collimation-team/machine_configurations/LHC_run3/2025/scenarios")
 
+
+# Load the configuration
 config = yaml.load(scenarios / 'injection.yaml')
 
 

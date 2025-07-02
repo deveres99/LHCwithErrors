@@ -13,6 +13,7 @@ def enable_crossing(env, config):
         if knob.startswith('on_'):
             env.vars[knob] = val
 
+
 def check_knobs(env, config):
     vart = env.vars.get_table()
     for knob, val in config['knob_settings'].items():
@@ -30,6 +31,7 @@ def check_knobs(env, config):
             else:
                 print(f"Warning: Knob {knob} not found in the environment.")
 
+
 def set_cavity_frequency(env, harmonic_number=35640):
     for line in env.lines.values():
         _, cavities = line.get_elements_of_type(xt.Cavity)
@@ -37,6 +39,7 @@ def set_cavity_frequency(env, harmonic_number=35640):
         beta0 = line.particle_ref.beta0[0]
         for name in cavities:
             line[name].frequency = harmonic_number / length * beta0 * sc.c
+
 
 def add_phase_knob(env):
     # Can use phase_knob, phase_change, phase_knob.b1, phase_change.b1, phase_knob.b2, and phase_change.b2
@@ -79,6 +82,7 @@ def add_phase_knob(env):
     env.ref['kqtd.a78b2'] -= 0.0006010707552*env.ref['phase_change.b2']
     env.ref['kqtd.a81b2'] += 0.0014239700000*env.ref['phase_change.b2']
 
+
 def add_mo_knob(env):
     # Can use i_mo, i_mo.b1, i_oct_b1, i_mo.b2, and i_oct_b2
     env.vars['i_mo'] = 0
@@ -86,9 +90,10 @@ def add_mo_knob(env):
     for beam in [1, 2]:
         env.vars[f'i_oct_b{beam}'] = env.vars['i_mo']
         env.vars[f'i_mo.b{beam}']  = env.vars[f'i_oct_b{beam}']
-        for i in range(8):
-            env.ref[f'kof.a{i+1}{(i+1)%+1}b{beam}'] = env.ref['kmax_mo'] * env.ref[f'i_mo.b{beam}'] / env.ref['imax_mo'] / brho
-            env.ref[f'kod.a{i+1}{(i+1)%+1}b{beam}'] = env.ref['kmax_mo'] * env.ref[f'i_mo.b{beam}'] / env.ref['imax_mo'] / brho
+        for i in range(1,9):
+            env.ref[f'kof.a{i}{i%8+1}b{beam}'] = env.ref['kmax_mo'] * env.ref[f'i_mo.b{beam}'] / env.ref['imax_mo'] / brho
+            env.ref[f'kod.a{i}{i%8+1}b{beam}'] = env.ref['kmax_mo'] * env.ref[f'i_mo.b{beam}'] / env.ref['imax_mo'] / brho
+
 
 def add_tuning_knobs(env, injection=False):
     env.vars['on_sq'] = int(not injection)
@@ -112,6 +117,7 @@ def add_tuning_knobs(env, injection=False):
         env.vars[f'cmrs.b{beam}_sq'] = env.ref['on_sq'] * env.ref['cmrs']
         env.vars[f'cmis.b{beam}_sq'] = env.ref['on_sq'] * env.ref['cmis']
 
+
 def add_correction_term_to_dipole_correctors(env):
     # Add correction term to all dipole correctors
     env.vars['on_corr_co'] = 1
@@ -119,6 +125,7 @@ def add_correction_term_to_dipole_correctors(env):
         if kk.startswith('acb'):
             env.vars['corr_co_'+kk] = 0
             env.vars[kk] += (env.vars['corr_co_'+kk] * env.vars['on_corr_co'])
+
 
 def set_correctors(env):
     crossing_knobs = {'on_a2', 'on_a8', 'on_disp', 'on_o2', 'on_o8', 'on_oh1', 'on_oh2', 'on_oh5', 'on_oh8', 'on_ov1',
