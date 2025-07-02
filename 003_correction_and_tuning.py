@@ -25,10 +25,21 @@ config = yaml.load(scenarios / 'injection.yaml')
 
 # Correction algorithm for MB errors (assigning to spool pieces)
 store_mb_errors(env)
-cmd = run([f'{lhcerrors}/HL-LHC/corr_MB_ats_v4'], stdout=PIPE, stderr=PIPE)
-if cmd.returncode != 0:
-    stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
-    raise RuntimeError(f"Correction algorithm failed!\nError given is:\n{stderr}")
+file_opt  = Path('temp/optics0_MB.mad')
+file_err  = Path('temp/MB.errors')
+file_corr = Path('temp/MB_corr_setting.mad')
+for linename, _ in env.lines.items():
+    if file_opt.exists() or file_opt.is_symlink():
+        file_opt.unlink()
+    file_opt.symlink_to(f'optics0_MB_{linename}.mad')
+    if file_err.exists() or file_err.is_symlink():
+        file_err.unlink()
+    file_err.symlink_to(f'MB_{linename}.errors')
+    cmd = run([f'{lhcerrors}/HL-LHC/corr_MB_ats_v4'], stdout=PIPE, stderr=PIPE)
+    if cmd.returncode != 0:
+        stderr = cmd.stderr.decode('UTF-8').strip().split('\n')
+        raise RuntimeError(f"Correction algorithm failed!\nError given is:\n{stderr}")
+    file_corr.rename(f'temp/MB_corr_setting_{linename}.mad')
 
 
 # call,   file="temp/MB_corr_setting.mad";

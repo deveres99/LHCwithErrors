@@ -22,7 +22,7 @@ scenarios = Path("/eos/project-c/collimation-team/machine_configurations/LHC_run
 # Load the environment and the configuration
 env = xt.Environment.from_json('lattices/injection_with_apertures.json')
 config = yaml.load(scenarios / 'injection.yaml')
-seed = 1
+seed = 6
 
 
 # Set knobs and store the reference optics for correction later
@@ -78,6 +78,7 @@ env['on_b2s'] = store_val_on_b2s
 #         assign_skew_sext_errors(env, nn, vv, tt_rot, veto)
 #     elif nn.startswith('mo.'):
 #         assign_oct_errors(env, nn, vv, tt_rot, veto)
+print()
 
 
 # Store the environment with errors
