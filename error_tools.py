@@ -54,9 +54,9 @@ def assign_bend_errors(env, name, error_list, rotation_table, veto=None, Rr=0.01
         bn_s = [-error_list[f'b{i}']*yfac if i%2==0 else error_list[f'b{i}'] for i in range(1, 21) if f'b{i}' in error_list]
         an_s = [-error_list[f'a{i}']*yfac if i%2==1 else error_list[f'a{i}'] for i in range(1, 21) if f'a{i}' in error_list]
         for i, bn in enumerate(bn_s):
-            env[this_name].knl[i] += bn * env.vars['on_errors'] * env.vars[f'on_b{i+1}s'] * 1e-4 * env.ref[this_name].k0 * (Rr**(order-i)) * factorial(i) / factorial(order)
+            env[this_name].knl[i] += bn * env.vars['on_errors'] * env.vars[f'on_b{i+1}s'] * 1e-4 * env.ref[this_name].k0 * env.ref[this_name].length * (Rr**(order-i)) * factorial(i) / factorial(order)
         for i, an in enumerate(an_s):
-            env[this_name].ksl[i] += an * env.vars['on_errors'] * env.vars[f'on_a{i+1}s'] * 1e-4 * env.ref[this_name].k0 * (Rr**(order-i)) * factorial(i) / factorial(order)
+            env[this_name].ksl[i] += an * env.vars['on_errors'] * env.vars[f'on_a{i+1}s'] * 1e-4 * env.ref[this_name].k0 * env.ref[this_name].length * (Rr**(order-i)) * factorial(i) / factorial(order)
 
 
 def assign_quad_errors(env, name, error_list, rotation_table, veto=None, Rr=0.017):
@@ -80,9 +80,9 @@ def assign_quad_errors(env, name, error_list, rotation_table, veto=None, Rr=0.01
         bn_s = [-error_list[f'b{i}']*yfac*sfac if i%2==1 else error_list[f'b{i}'] for i in range(1, 21) if f'b{i}' in error_list]
         an_s = [-error_list[f'a{i}']*yfac      if i%2==0 else error_list[f'a{i}']*sfac for i in range(1, 21) if f'a{i}' in error_list]
         for i, bn in enumerate(bn_s):
-            env[this_name].knl[i] += bn * env.vars['on_errors'] * env.vars[f'on_b{i+1}s'] * 1e-4 * env.ref[this_name].k1 * (Rr**(order-i)) * factorial(i) / factorial(order)
+            env[this_name].knl[i] += bn * env.vars['on_errors'] * env.vars[f'on_b{i+1}s'] * 1e-4 * env.ref[this_name].k1 * env.ref[this_name].length * (Rr**(order-i)) * factorial(i) / factorial(order)
         for i, an in enumerate(an_s):
-            env[this_name].ksl[i] += an * env.vars['on_errors'] * env.vars[f'on_a{i+1}s'] * 1e-4 * env.ref[this_name].k1 * (Rr**(order-i)) * factorial(i) / factorial(order)
+            env[this_name].ksl[i] += an * env.vars['on_errors'] * env.vars[f'on_a{i+1}s'] * 1e-4 * env.ref[this_name].k1 * env.ref[this_name].length * (Rr**(order-i)) * factorial(i) / factorial(order)
 
 
 def assign_sext_errors(env, name, error_list, rotation_table, veto=None, Rr=0.017):
@@ -103,9 +103,9 @@ def assign_sext_errors(env, name, error_list, rotation_table, veto=None, Rr=0.01
         bn_s = [-error_list[f'b{i}']*yfac if i%2==0 else error_list[f'b{i}'] for i in range(1, 21) if f'b{i}' in error_list]
         an_s = [-error_list[f'a{i}']*yfac if i%2==1 else error_list[f'a{i}'] for i in range(1, 21) if f'a{i}' in error_list]
         for i, bn in enumerate(bn_s):
-            env[this_name].knl[i] += bn * env.vars['on_errors'] * env.vars[f'on_b{i+1}s'] * 1e-4 * env.ref[this_name].k2 * (Rr**(order-i)) * factorial(i) / factorial(order)
+            env[this_name].knl[i] += bn * env.vars['on_errors'] * env.vars[f'on_b{i+1}s'] * 1e-4 * env.ref[this_name].k2 * env.ref[this_name].length * (Rr**(order-i)) * factorial(i) / factorial(order)
         for i, an in enumerate(an_s):
-            env[this_name].ksl[i] += an * env.vars['on_errors'] * env.vars[f'on_a{i+1}s'] * 1e-4 * env.ref[this_name].k2 * (Rr**(order-i)) * factorial(i) / factorial(order)
+            env[this_name].ksl[i] += an * env.vars['on_errors'] * env.vars[f'on_a{i+1}s'] * 1e-4 * env.ref[this_name].k2 * env.ref[this_name].length * (Rr**(order-i)) * factorial(i) / factorial(order)
 
 
 def assign_skew_sext_errors(env, name, error_list, rotation_table, veto=None, Rr=0.017):
@@ -126,9 +126,9 @@ def assign_skew_sext_errors(env, name, error_list, rotation_table, veto=None, Rr
         bn_s = [error_list[f'b{i}']*yfac if i%2==0 else -error_list[f'b{i}'] for i in range(1, 21) if f'b{i}' in error_list]
         an_s = [error_list[f'a{i}']*yfac if i%2==1 else -error_list[f'a{i}'] for i in range(1, 21) if f'a{i}' in error_list]
         for i, bn in enumerate(bn_s):
-            env[this_name].knl[i] += bn * env.vars['on_errors'] * env.vars[f'on_b{i+1}s'] * 1e-4 * env.ref[this_name].k2s * (Rr**(order-i)) * factorial(i) / factorial(order)
+            env[this_name].knl[i] += bn * env.vars['on_errors'] * env.vars[f'on_b{i+1}s'] * 1e-4 * env.ref[this_name].k2s * env.ref[this_name].length * (Rr**(order-i)) * factorial(i) / factorial(order)
         for i, an in enumerate(an_s):
-            env[this_name].ksl[i] += an * env.vars['on_errors'] * env.vars[f'on_a{i+1}s'] * 1e-4 * env.ref[this_name].k2s * (Rr**(order-i)) * factorial(i) / factorial(order)
+            env[this_name].ksl[i] += an * env.vars['on_errors'] * env.vars[f'on_a{i+1}s'] * 1e-4 * env.ref[this_name].k2s * env.ref[this_name].length * (Rr**(order-i)) * factorial(i) / factorial(order)
 
 
 def assign_oct_errors(env, name, error_list, rotation_table, veto=None, Rr=0.017):
@@ -149,9 +149,9 @@ def assign_oct_errors(env, name, error_list, rotation_table, veto=None, Rr=0.017
         bn_s = [-error_list[f'b{i}']*yfac if i%2==1 else error_list[f'b{i}'] for i in range(1, 21) if f'b{i}' in error_list]
         an_s = [-error_list[f'a{i}']*yfac if i%2==0 else error_list[f'a{i}'] for i in range(1, 21) if f'a{i}' in error_list]
         for i, bn in enumerate(bn_s):
-            env[this_name].knl[i] += bn * env.vars['on_errors'] * env.vars[f'on_b{i+1}s'] * 1e-4 * env.ref[this_name].k3 * (Rr**(order-i)) * factorial(i) / factorial(order)
+            env[this_name].knl[i] += bn * env.vars['on_errors'] * env.vars[f'on_b{i+1}s'] * 1e-4 * env.ref[this_name].k3 * env.ref[this_name].length * (Rr**(order-i)) * factorial(i) / factorial(order)
         for i, an in enumerate(an_s):
-            env[this_name].ksl[i] += an * env.vars['on_errors'] * env.vars[f'on_a{i+1}s'] * 1e-4 * env.ref[this_name].k3 * (Rr**(order-i)) * factorial(i) / factorial(order)
+            env[this_name].ksl[i] += an * env.vars['on_errors'] * env.vars[f'on_a{i+1}s'] * 1e-4 * env.ref[this_name].k3 * env.ref[this_name].length * (Rr**(order-i)) * factorial(i) / factorial(order)
 
 
 def do_micado(env):
