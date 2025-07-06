@@ -118,15 +118,6 @@ def add_tuning_knobs(env, injection=False):
         env.vars[f'cmis.b{beam}_sq'] = env.ref['on_sq'] * env.ref['cmis']
 
 
-def add_correction_term_to_dipole_correctors(env):
-    # Add correction term to all dipole correctors
-    env.vars['on_corr_co'] = 1
-    for kk in list(env.vars.keys()):
-        if kk.startswith('acb'):
-            env.vars['corr_co_'+kk] = 0
-            env.vars[kk] += (env.vars['corr_co_'+kk] * env.vars['on_corr_co'])
-
-
 def set_correctors(env):
     crossing_knobs = {'on_a2', 'on_a8', 'on_disp', 'on_o2', 'on_o8', 'on_oh1', 'on_oh2', 'on_oh5', 'on_oh8', 'on_ov1',
                     'on_ov2', 'on_ov5', 'on_ov8', 'on_sep1', 'on_sep2h', 'on_sep2v', 'on_sep5', 'on_sep8h', 'on_sep8v',
@@ -135,7 +126,6 @@ def set_correctors(env):
     for nn in env.vars.get_table().name:
         if env.vars[nn]._expr is None:
             continue
-        # if nn.startswith('corr_co_'):
         deps = {vv._key for vv in env.vars[nn]._expr._get_dependencies()}
         if any([vvv in crossing_knobs for vvv in deps]):
             crossing_currents.add(nn)
@@ -150,10 +140,22 @@ def set_correctors(env):
         tt_v_correctors = tt.rows[mask].rows['mcb.*'].rows['.*v\..*'].name
         line.steering_correctors_y = list({nn for nn in tt_v_correctors if nn not in crossing_correctors})
 
-        tt_monitors = tt.rows[mask].rows['bpm.*'].rows['.*(?<!_entry)$'].rows['.*(?<!_exit)$'].name
+        mask = ~np.array([nn.startswith('Limit') for nn in tt.element_type])
+        # tt_monitors = tt.rows[mask].rows['bpm.*'].rows['.*(?<!_entry)$'].rows['.*(?<!_exit)$'].name
+        tt_monitors = tt.rows[mask].rows['bpm\..*'].rows['.*(?<!_entry)$'].rows['.*(?<!_exit)$'].name
         tt_monitors = [nn for nn in tt_monitors if not nn.startswith('bpmwa')]
         tt_monitors = [nn for nn in tt_monitors if not nn.startswith('bpmwb')]
         tt_monitors = [nn for nn in tt_monitors if not nn.startswith('bpmse')]
         tt_monitors = [nn for nn in tt_monitors if not nn.startswith('bpmsd')]
+        # Remove double-counted monitors (multiple at same s), keep shortest name
+        monitors_by_s = {}
+        for nn, ss in zip(tt.name, tt.s):
+            if nn in tt_monitors:
+                ss_key = [sss for sss in monitors_by_s.keys() if np.isclose(ss, sss, atol=0.001)]
+                if not ss_key:
+                    monitors_by_s[ss] = [nn]
+                else:
+                    monitors_by_s[ss_key[0]].append(nn)
+        tt_monitors = [min(nn, key=len) for nn in monitors_by_s.values()]
         line.steering_monitors_x = tt_monitors
         line.steering_monitors_y = tt_monitors

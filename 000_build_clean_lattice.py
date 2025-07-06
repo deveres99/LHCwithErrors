@@ -6,7 +6,7 @@ import time
 start = time.time()
 
 from knob_tools import set_cavity_frequency, add_phase_knob, add_mo_knob, add_tuning_knobs, check_knobs, \
-                       add_correction_term_to_dipole_correctors, set_correctors
+                       set_correctors
 from slice_tools import slice_env
 from tuning_tools import tune_line
 
@@ -40,7 +40,6 @@ set_cavity_frequency(env)
 add_phase_knob(env)
 add_mo_knob(env)
 add_tuning_knobs(env, injection=True)
-add_correction_term_to_dipole_correctors(env)
 set_correctors(env)
 check_knobs(env, config)
 
