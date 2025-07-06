@@ -1,87 +1,73 @@
 import xtrack as xt
-import numpy as np
 from pathlib import Path
 from ruamel.yaml import YAML
 yaml = YAML(typ='safe')
 import time
 start = time.time()
 
-from knob_tools import disable_crossing, set_correctors
-from tfs_tools import store_twiss_reference, read_table
-from error_tools import add_error_knobs, veto_for_errors, extend_order_knl_ksl, assign_bend_errors, \
-                        assign_quad_errors, assign_sext_errors, assign_skew_sext_errors, \
-                        assign_oct_errors, do_micado
-from tuning_tools import inj_settings_ecloud, tune_line
+from knob_tools import disable_crossing, enable_crossing
+from tfs_tools import store_twiss_reference
+from error_tools import add_error_knobs, load_error_table, assign_errors, consider_micado
+from tuning_tools import tune_environment_from_config
+
+
+seed = 6
 
 
 # Paths
-lhcerrors = Path("/eos/project-c/collimation-team/machine_configurations/lhcerrors")
-scenarios = Path("/eos/project-c/collimation-team/machine_configurations/LHC_run3/2025/scenarios")
+path_errors = Path("/eos/project-c/collimation-team/machine_configurations/lhcerrors")
+path_scenarios = Path("/eos/project-c/collimation-team/machine_configurations/LHC_run3/2025/scenarios")
+path_errors = Path.cwd() / "lhcerrors"  # For local testing
+path_scenarios = Path.cwd()  # For local testing
+infile = Path("lattices/injection_clean_with_apertures.json")
+outfile = Path(f"lattices/injection_with_errors_s{seed}.json")
 
 
-# Load the environment and the configuration
-env = xt.Environment.from_json('lattices/injection_with_apertures.json')
-config = yaml.load(scenarios / 'injection.yaml')
-seed = 6
+# Load the configuration
+config = yaml.load(path_scenarios / 'injection.yaml')
+
+
+# =================================================================================================
+
+
+# Load the environment
+env = xt.Environment.from_json(infile)
 
 
 # Set knobs and store the reference optics for correction later
 disable_crossing(env, config)
 add_error_knobs(env)
 store_twiss_reference(env)
-set_correctors(env)   # TODO: why were they not stored in the json?
+tw_for_orbit_corr = {linename: line.twiss() for linename, line in env.lines.items()}
+
+
+# Tune the environment to its nominal settings, such that the relative errors are representative
+tune_environment_from_config(env, config)
 
 
 # Load the error tables
-nrj = 'collision' if env.vars['nrj'] > 2000 else 'injection'
-tt_err = read_table(lhcerrors / f'LHC/wise/{nrj}_errors-emfqcs-{seed}.tfs')
-tt_rot = read_table(lhcerrors / 'LHC/rotations_Q2_integral.tab')
-veto = veto_for_errors(env)
+tt_err, tt_rot = load_error_table(env, path_errors, seed, rotation_table=True)
+
+# Errors for the Main Dipoles, Separation Dipoles, and Quadrupoles
+assign_errors(env, tt_err, tt_rot, dipoles=True, separation_dipoles=True, quadrupoles=True)
+
+# # Errors for the (Skew) Sextupoles and Octupoles
+# # Only fidel tables have errors for these magnets
+# tt_err = load_error_table(env, path_errors, seed, table_type='fidel')
+# assign_errors(env, tt_err, tt_rot, sextupoles=True, skew_sextupoles=True, octupoles=True)
 
 
-# Errors for the Main Dipoles
-print(); print("Assigning errors to Main Dipoles")
-extend_order_knl_ksl(env, 'mb.*', order=20)
-for nn, vv in tt_err.items():
-    if nn.startswith('mb.'):
-        assign_bend_errors(env, nn, vv, tt_rot, veto)
-do_micado(env)
+# First micado if needed, then restore the crossing knobs
+consider_micado(env)
+enable_crossing(env, config)
 
 
-# Errors for the Separation Dipoles
-print(); print(); print("Assigning errors to Separation Dipoles")
-for nn, vv in tt_err.items():
-    if nn.startswith('mb') and nn[2] != '.':
-        assign_bend_errors(env, nn, vv, tt_rot, veto)
-
-
-# Errors for the Quadrupoles
-print(); print(); print("Assigning errors to Quadrupoles")
-extend_order_knl_ksl(env, 'mq.*', order=20)
-store_val_on_b2s = env['on_b2s']
-env['on_b2s'] = 0
-for nn, vv in tt_err.items():
-    if nn.startswith('mq'):
-        assign_quad_errors(env, nn, vv, tt_rot, veto)
-env['on_b2s'] = store_val_on_b2s
-
-
-# # Errors for the Sextupoles and Octupoles
-# print(); print(); print("Assigning errors to Sextupoles and Octupoles")
-# extend_order_knl_ksl(env, 'ms.*', order=20)
-# extend_order_knl_ksl(env, 'mss.*', order=20)
-# extend_order_knl_ksl(env, 'mo.*', order=20)
-# for nn, vv in tt_err.items():
-#     if nn.startswith('ms.'):
-#         assign_sext_errors(env, nn, vv, tt_rot, veto)
-#     elif nn.startswith('mss.'):
-#         assign_skew_sext_errors(env, nn, vv, tt_rot, veto)
-#     elif nn.startswith('mo.'):
-#         assign_oct_errors(env, nn, vv, tt_rot, veto)
-print()
+# Final tuning
+tune_environment_from_config(env, config, tw_for_orbit_corr)
+for line in env.lines. values():
+    line.twiss_default.pop("method", None)
 
 
 # Store the environment with errors
-env.to_json(f'lattices/injection_with_errors_s{seed}.json')
-
+env.to_json(outfile)
 print(f"Error assignments took {time.time() - start:.2f} seconds")

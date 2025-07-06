@@ -4,8 +4,6 @@ from pathlib import Path
 
 def store_twiss_reference(env):
     for linename, line in env.lines.items():
-        # if linename.endswith('b2'):
-        #     continue
         tt = line.get_table(attr=True)
         tw = line.twiss()
         lines = []
@@ -51,11 +49,12 @@ def read_table(filename):
                 or [parts[0].lower(), parts[1].lower()] == ['not', 'found']:
                     continue
                 vals = {kk: float(vv) for kk, vv in zip(header[1:], parts[1:])}
-                result[parts[0].lower()] = vals
+                result[parts[0].replace('"', '').lower()] = vals
     return result
 
 
-def store_mb_errors(env):
+def store_errors(env, pattern=['mb.*', 'mbh.*']):
+    pattern = [patt.replace('*', '') for patt in pattern]  # TODO: use table rows instead of loop
     for linename, line in env.lines.items():
         tt = line.get_table(attr=True)
         lines = ['@ NAME             %06s "EFIELD"']
@@ -80,8 +79,10 @@ def store_mb_errors(env):
         mess_type += '%le                %le                %le                %le                %le                '
         mess_type += '%le                %le                %le                %le '
         lines.append(mess_type)
-        for nn in tt.name:
-            if nn.startswith('mb.') or nn.startswith('mbh.'):
+        for nn, et in zip(tt.name, tt.element_type):
+            if et.startswith('Drift') or et.startswith('Limit') or et.startswith('Marker'):
+                continue
+            if any([nn.startswith(patt) for patt in pattern]):
                 mess  = f' "{nn.upper()}"'
                 mess  = f'{mess:20}'
                 knl = line[nn].knl

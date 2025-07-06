@@ -2,12 +2,6 @@ import xtrack as xt
 import numpy as np
 
 
-inj_settings_clean   = {'qx': 62.28,  'qy': 60.31,  'dqx': 0,  'dqy': 0,  'i_mo': 0,   'c_minus': 0}
-inj_settings_ecloud  = {'qx': 62.275, 'qy': 60.293, 'dqx': 25, 'dqy': 25, 'i_mo': 39,  'c_minus': 0.001}
-coll_settings_clean  = {'qx': 62.31,  'qy': 60.32,  'dqx': 0,  'dqy': 0,  'i_mo': 0,   'c_minus': 0}
-coll_settings_ecloud = {'qx': 62.313, 'qy': 60.319, 'dqx': 20, 'dqy': 20, 'i_mo': 295, 'c_minus': 0.001}
-
-
 def match_tune_chrom(line, qx, qy, dqx, dqy, tol=1e-3):
     if hasattr(tol, '__iter__'):
         penalty = 1e10
@@ -85,9 +79,11 @@ def tune_line(line, qx, qy, dqx, dqy, c_minus, i_mo=None, phase_knob=None, orbit
     old_twiss_default_method = line.twiss_default.get("method")
     line.twiss_default["method"] = "4d"
     if orbit_ref is not None:
-        if line.steering_correctors_x is None or line.steering_correctors_y is None:
+        if line.steering_correctors_x is None or len(line.steering_correctors_x) == 0\
+        or line.steering_correctors_y is None or len(line.steering_correctors_y) == 0:
             raise ValueError('No steering correctors found in the line')
-        if line.steering_monitors_x is None or line.steering_monitors_y is None:
+        if line.steering_monitors_x is None or len(line.steering_monitors_x) == 0\
+        or line.steering_monitors_y is None or len(line.steering_monitors_y) == 0:
             raise ValueError('No steering monitors found in the line')
         if isinstance(orbit_ref, xt.Line):
             orbit_ref = orbit_ref.twiss()
@@ -97,3 +93,13 @@ def tune_line(line, qx, qy, dqx, dqy, c_minus, i_mo=None, phase_knob=None, orbit
     match_tune_chrom(line, qx=qx, qy=qy, dqx=dqx, dqy=dqy, tol=[1e-4, 2e-5, 5e-6, 1e-6])
     if old_twiss_default_method:
         line.twiss_default["method"] = old_twiss_default_method
+
+
+def tune_environment_from_config(env, config, orbit_ref=None):
+    for linename, line in env.lines.items():
+        this_orbit_ref = orbit_ref[linename] if orbit_ref else None
+        tune_line(line, qx=config['qx'][linename], qy=config['qy'][linename],
+                  dqx=config['dqx'][linename], dqy=config['dqy'][linename],
+                  c_minus=0.001, i_mo=config['knob_settings'][f'i_oct_b{linename[-1]}'],
+                  phase_knob=config['knob_settings']['phase_knob'],
+                  orbit_ref=this_orbit_ref)
