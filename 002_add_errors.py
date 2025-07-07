@@ -9,6 +9,7 @@ from knob_tools import disable_crossing, enable_crossing
 from tfs_tools import store_twiss_reference
 from error_tools import add_error_knobs, load_error_table, assign_errors, consider_micado
 from tuning_tools import tune_environment_from_config
+from correction_tools import run_fortran_correction, load_fortran_correction
 
 
 seed = 6
@@ -17,8 +18,6 @@ seed = 6
 # Paths
 path_errors = Path("/eos/project-c/collimation-team/machine_configurations/lhcerrors")
 path_scenarios = Path("/eos/project-c/collimation-team/machine_configurations/LHC_run3/2025/scenarios")
-path_errors = Path.cwd() / "lhcerrors"  # For local testing
-path_scenarios = Path.cwd()  # For local testing
 infile = Path("lattices/injection_clean_with_apertures.json")
 outfile = Path(f"lattices/injection_with_errors_s{seed}.json")
 
@@ -55,6 +54,12 @@ assign_errors(env, tt_err, tt_rot, dipoles=True, separation_dipoles=True, quadru
 # # Only fidel tables have errors for these magnets
 # tt_err = load_error_table(env, path_errors, seed, table_type='fidel')
 # assign_errors(env, tt_err, tt_rot, sextupoles=True, skew_sextupoles=True, octupoles=True)
+
+
+
+# Do the correction (for the time being, with the FORTRAN code)
+run_fortran_correction(env, path_errors)
+load_fortran_correction(env)
 
 
 # First micado if needed, then restore the crossing knobs
