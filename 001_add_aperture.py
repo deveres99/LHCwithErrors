@@ -6,7 +6,7 @@ start = time.time()
 
 # Paths
 path_acc_models = Path("/eos/project-c/collimation-team/machine_configurations/acc-models/lhc/2025")
-path_layout = Path("/eos/project-c/collimation-team/machine_configurations/layoutdb")
+path_layout = Path("/eos/project-c/collimation-team/machine_configurations/layout_db/files/LHC")
 infile = Path("lattices/injection_clean.json")
 outfile = Path("lattices/injection_clean_with_apertures.json")
 
