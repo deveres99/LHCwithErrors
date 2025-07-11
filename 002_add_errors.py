@@ -34,10 +34,10 @@ env = xt.Environment.from_json(infile)
 
 
 # Set knobs and store the reference optics for correction later
-disable_crossing(env, config)
 add_error_knobs(env)
 store_twiss_reference(env)
 tw_for_orbit_corr = {linename: line.twiss() for linename, line in env.lines.items()}
+disable_crossing(env, config)
 
 
 # Tune the environment to its nominal settings, such that the relative errors are representative

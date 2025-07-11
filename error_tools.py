@@ -76,7 +76,7 @@ def assign_errors(env, error_table, rotation_table, dipoles=False, separation_di
         _extend_order_knl_ksl(env, 'mb\..*')
         for nn, err in error_table.items():
             if nn.startswith('mb.'):
-                _, beam, magnets = _get_name_from_slot(nn, err)
+                name, beam, magnets = _get_name_from_slot(nn, err)
                 is_rotated = _is_rotated(name, rotation_table)
                 for this_name in magnets:
                     if this_name in veto: continue
@@ -142,46 +142,56 @@ def assign_errors(env, error_table, rotation_table, dipoles=False, separation_di
                 if this_name not in env.elements:
                     print(f"Warning: {this_name} not found in environment, not assigning errors.")
                     continue
+                ee = env[this_name]
+                eeref = env.ref[this_name]
                 if nn.startswith('mb') or nn.startswith('mcb'):
+                    kref = eeref.k0 if hasattr(ee, 'k0') else eeref.knl[0]
                     assign_errors_single_magnet(env, this_name, err, order=0, is_skew=False,
-                                                kl_ref=1e-4 * env.ref[this_name].k0 * env[this_name].length,
+                                                kl_ref=1e-4 * kref * ee.length,
                                                 is_rotated=is_rotated, is_beam4=(beam==2), Rr=0.017)
                 elif nn.startswith('mq.'):
                     # Quadrupole
                     # These don't seem to follow the magnetic sign convention. Not sure why...
+                    kref = eeref.k1 if hasattr(ee, 'k1') else eeref.knl[1]
                     assign_errors_single_magnet(env, this_name, err, order=1, is_skew=False,
-                                                kl_ref=1e-4 * env.ref[this_name].k1 * env[this_name].length,
+                                                kl_ref=1e-4 * kref * ee.length,
                                                 is_rotated=is_rotated, is_beam4=(beam==2), Rr=0.017,
                                                 magnetic_sign=False)
                 elif nn.startswith('ms.') or nn.startswith('mcs.') or nn.startswith('mcsx.'):
                     # Sextupole
+                    kref = eeref.k2 if hasattr(ee, 'k2') else eeref.knl[2]
                     assign_errors_single_magnet(env, this_name, err, order=2, is_skew=False,
-                                                kl_ref=1e-4 * env.ref[this_name].k2 * env[this_name].length,
+                                                kl_ref=1e-4 * kref* ee.length,
                                                 is_rotated=is_rotated, is_beam4=(beam==2), Rr=0.017)
                 elif nn.startswith('mss.') or nn.startswith('mcssx.'):
                     # Skew Sextupole
+                    kref = eeref.k2s if hasattr(ee, 'k2s') else eeref.ksl[2]
                     assign_errors_single_magnet(env, this_name, err, order=2, is_skew=True,
-                                                kl_ref=1e-4 * env.ref[this_name].k2s * env[this_name].length,
+                                                kl_ref=1e-4 * kref * ee.length,
                                                 is_rotated=is_rotated, is_beam4=(beam==2), Rr=0.017)
                 elif nn.startswith('mo.') or nn.startswith('mco.') or nn.startswith('mcox.'):
                     # Octupole
+                    kref = eeref.k3 if hasattr(ee, 'k3') else eeref.knl[3]
                     assign_errors_single_magnet(env, this_name, err, order=3, is_skew=False,
-                                                kl_ref=1e-4 * env.ref[this_name].k3 * env[this_name].length,
+                                                kl_ref=1e-4 * kref * ee.length,
                                                 is_rotated=is_rotated, is_beam4=(beam==2), Rr=0.017)
                 elif nn.startswith('mcosx.'):
                     # Skew Octupole
+                    kref = eeref.k3s if hasattr(ee, 'k3s') else eeref.ksl[3]
                     assign_errors_single_magnet(env, this_name, err, order=3, is_skew=True,
-                                                kl_ref=1e-4 * env.ref[this_name].k3s * env[this_name].length,
+                                                kl_ref=1e-4 * kref * ee.length,
                                                 is_rotated=is_rotated, is_beam4=(beam==2), Rr=0.017)
                 elif nn.startswith('mcd.'):
                     # Decapole
+                    kref = eeref.knl[4]
                     assign_errors_single_magnet(env, this_name, err, order=4, is_skew=False,
-                                                kl_ref=1e-4 * env.ref[this_name].knl[4] * env[this_name].length,
+                                                kl_ref=1e-4 * kref * ee.length,
                                                 is_rotated=is_rotated, is_beam4=(beam==2), Rr=0.017)
                 elif nn.startswith('mctx.'):
                     # Dodecapole
+                    kref = eeref.knl[5]
                     assign_errors_single_magnet(env, this_name, err, order=5, is_skew=False,
-                                                kl_ref=1e-4 * env.ref[this_name].knl[5] * env[this_name].length,
+                                                kl_ref=1e-4 * kref * ee.length,
                                                 is_rotated=is_rotated, is_beam4=(beam==2), Rr=0.017)
     env['on_b2s'] = store_val_on_b2s
 
@@ -219,14 +229,18 @@ def _extend_order_knl_ksl(env, pattern, order=_MAX_ORDER):
 
 def _veto_for_errors(env):
     # Get all the unplugged magnets in both lines.
-    tt_1 = env['lhcb1'].get_table()
-    mask = np.array([nn.startswith('Limit') or nn.startswith('Drift') or nn.startswith('Marker')
-                     for nn in tt_1.element_type])
-    veto = tt_1.rows[mask].name
-    tt_2 = env['lhcb2'].get_table()
-    mask = np.array([nn.startswith('Limit') or nn.startswith('Drift') or nn.startswith('Marker')
-                     for nn in tt_2.element_type])
-    return np.concatenate((veto, tt_2.rows[mask].name))
+    veto = np.array([])
+    if 'lhcb1' in env.lines:
+        tt_1 = env['lhcb1'].get_table()
+        mask = np.array([nn.startswith('Limit') or nn.startswith('Drift') or nn.startswith('Marker')
+                        for nn in tt_1.element_type])
+        veto = np.concatenate((veto, tt_1.rows[mask].name))
+    if 'lhcb2' in env.lines:
+        tt_2 = env['lhcb2'].get_table()
+        mask = np.array([nn.startswith('Limit') or nn.startswith('Drift') or nn.startswith('Marker')
+                        for nn in tt_2.element_type])
+        veto = np.concatenate((veto, tt_2.rows[mask].name))
+    return veto
 
 def _is_rotated(name, rotation_table):
     if name in rotation_table:

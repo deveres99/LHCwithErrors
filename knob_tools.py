@@ -3,10 +3,15 @@ import numpy as np
 import scipy.constants as sc
 
 
-def disable_crossing(env, config):
-    for knob, _ in config['knob_settings'].items():
-        if knob.startswith('on_'):
-            env.vars[knob] = 0
+def disable_crossing(env, config=None):
+    if config:
+        for knob, _ in config['knob_settings'].items():
+            if knob.startswith('on_'):
+                env.vars[knob] = 0
+    else:
+        for knob in env.vars.get_table().name:
+            if knob.startswith('on_'):
+                env.vars[knob] = 0
 
 def enable_crossing(env, config):
     for knob, val in config['knob_settings'].items():
@@ -14,7 +19,7 @@ def enable_crossing(env, config):
             env.vars[knob] = val
 
 
-def check_knobs(env, config):
+def check_knobs(env, config=None):
     vart = env.vars.get_table()
     for knob, val in config['knob_settings'].items():
         if knob not in vart.name:

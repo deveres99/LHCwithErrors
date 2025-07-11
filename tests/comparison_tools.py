@@ -1,3 +1,5 @@
+from tfs_tools import read_table
+
 def compare_error_tables(ref, new, match=True):
     import numpy as np
     ref = read_table(ref)
