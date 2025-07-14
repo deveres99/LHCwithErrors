@@ -64,7 +64,6 @@ def assign_errors_single_magnet(env, name, error_list, order, kl_ref, is_skew=Fa
         env[name].ksl[i] += an * env.vars['on_errors'] * env.vars[f'on_a{i+1}s'] * \
                             kl_ref * (Rr**(order-i)) * factorial(i) / factorial(order)
 
-
 def assign_errors(env, error_table, rotation_table, dipoles=False, separation_dipoles=False,
                   quadrupoles=False, sextupoles=False, skew_sextupoles=False, octupoles=False,
                   corrector_dipoles=False, corrector_sextupoles=False, corrector_skew_sextupoles=False,
@@ -78,15 +77,19 @@ def assign_errors(env, error_table, rotation_table, dipoles=False, separation_di
         _extend_order_knl_ksl(env, 'mb\..*')
         for nn, err in error_table.items():
             if nn.startswith('mb.'):
-                name, beam, magnets = _get_name_from_slot(nn, err)
+                name, beam, magnets = _get_name_from_slot(nn, err, env)
                 is_rotated = _is_rotated(name, rotation_table)
                 for this_name in magnets:
-                    if this_name in veto: continue
+                    if this_name in veto:
+                        continue
                     if this_name not in env.elements:
                         print(f"Warning: {this_name} not found in environment, not assigning errors.")
                         continue
+                    ee = env[this_name]
+                    eeref = env.ref[this_name]
+                    kref = eeref.k0 if hasattr(ee, 'k0') else eeref.knl[0]
                     assign_errors_single_magnet(env, this_name, err, order=0, is_skew=False,
-                                                kl_ref=1e-4 * env.ref[this_name].k0 * env[this_name].length,
+                                                kl_ref=1e-4 * kref * env[this_name].length,
                                                 is_rotated=is_rotated, is_beam4=(beam==2), Rr=0.017)
         consider_micado(env)
 
@@ -137,7 +140,7 @@ def assign_errors(env, error_table, rotation_table, dipoles=False, separation_di
             if nn.startswith('mb.'):
                 # Main Dipole, already handled above
                 continue
-            name, beam, magnets = _get_name_from_slot(nn, err)
+            name, beam, magnets = _get_name_from_slot(nn, err, env)
             is_rotated = _is_rotated(name, rotation_table)
             for this_name in magnets:
                 if this_name in veto: continue
@@ -306,16 +309,19 @@ def consider_micado(env):
             line.correct_trajectory(twiss_table=tw_ref, n_micado=5, n_iter=1)
 
 
-def _get_name_from_slot(name, error_list):
+def _get_name_from_slot(name, error_list, env):
     beam = int(round(error_list['beam']))
     if beam == 0:
-        magnets = [f'{name}/lhcb1', f'{name}/lhcb2']
+        name_match = name
     elif name[:-1].endswith('.v'):
-        name = name[:-3]
-        magnets = [f"{name}.b{beam}"]
+        name_match = name[:-3]
     else:
-        magnets = [f"{name}.b{beam}"]
-    return name, beam, magnets
+        name_match = name
+    magnets = []
+    for nn in env.elements.keys():
+        if name_match in nn:
+            magnets.append(nn)
+    return name_match, beam, magnets
 
 def _extend_order_knl_ksl(env, pattern, order=_MAX_ORDER):
     # Some magnets are unplugged from the lattice (put as Drifts).
