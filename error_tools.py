@@ -1,4 +1,6 @@
 import numpy as np
+import re
+from collections import defaultdict
 from math import factorial
 from tfs_tools import read_table
 
@@ -194,6 +196,103 @@ def assign_errors(env, error_table, rotation_table, dipoles=False, separation_di
                                                 kl_ref=1e-4 * kref * ee.length,
                                                 is_rotated=is_rotated, is_beam4=(beam==2), Rr=0.017)
     env['on_b2s'] = store_val_on_b2s
+
+
+def assign_spool_pieces(env):
+    arc_map = {
+        ('r', '1'): 12, ('l', '2'): 12,
+        ('r', '2'): 23, ('l', '3'): 23,
+        ('r', '3'): 34, ('l', '4'): 34,
+        ('r', '4'): 45, ('l', '5'): 45,
+        ('r', '5'): 56, ('l', '6'): 56,
+        ('r', '6'): 67, ('l', '7'): 67,
+        ('r', '7'): 78, ('l', '8'): 78,
+        ('r', '8'): 81, ('l', '1'): 81
+    }
+    mb_pattern = re.compile(r"mb\.\w+([rl])([1-8])\.\w+")
+    mcs_pattern = re.compile(r"mcs\.\w*([rl])([1-8])\.\w+")
+    mco_pattern = re.compile(r"mco\.\w*([rl])([1-8])\.\w+")
+    mcd_pattern = re.compile(r"mcd\.\w*([rl])([1-8])\.\w+")
+
+    mb_per_arc = []
+    mcs_per_arc = []
+    mco_per_arc = []
+    mcd_per_arc = []
+    for beam in ["lhcb1", "lhcb2"]:
+        mb_per_arc.append(defaultdict(list))
+        mcs_per_arc.append(defaultdict(list))
+        mco_per_arc.append(defaultdict(list))
+        mcd_per_arc.append(defaultdict(list))
+
+        for name in env[beam].element_names:
+            match_mb = mb_pattern.fullmatch(name)
+            match_mcs = mcs_pattern.fullmatch(name)
+            match_mco = mco_pattern.fullmatch(name)
+            match_mcd = mcd_pattern.fullmatch(name)
+            
+            if match_mb:
+                letter, digit = match_mb.groups()
+                arc = arc_map.get((letter, digit))
+                if arc:
+                    if env[name].to_dict()["__class__"] == "Drift":
+                        continue
+                    mb_per_arc[-1][arc].append(name)
+            elif match_mcs:
+                letter, digit = match_mcs.groups()
+                arc = arc_map.get((letter, digit))
+                if arc:
+                    if env[name].to_dict()["__class__"] == "Drift":
+                        continue
+                    mcs_per_arc[-1][arc].append(name)
+            elif match_mco:
+                letter, digit = match_mco.groups()
+                arc = arc_map.get((letter, digit))
+                if arc:
+                    if env[name].to_dict()["__class__"] == "Drift":
+                        continue
+                    mco_per_arc[-1][arc].append(name)
+            elif match_mco:
+                letter, digit = match_mco.groups()
+                arc = arc_map.get((letter, digit))
+                if arc:
+                    if env[name].to_dict()["__class__"] == "Drift":
+                        continue
+                    mco_per_arc[-1][arc].append(name)
+            elif match_mcd:
+                letter, digit = match_mcd.groups()
+                arc = arc_map.get((letter, digit))
+                if arc:
+                    if env[name].to_dict()["__class__"] == "Drift":
+                        continue
+                    mcd_per_arc[-1][arc].append(name)
+            else:
+                continue
+
+    for arc in [12, 23, 34, 45, 56, 67, 78, 81]:
+        for beam in [1, 2]:
+            total_k2l = 0.0
+            total_k3l = 0.0
+            total_k4l = 0.0
+
+            for name in mb_per_arc[beam-1][arc]:
+                total_k2l += env[name].knl[2]
+                total_k3l += env[name].knl[3]
+                total_k4l += env[name].knl[4]
+
+            k2l_corr = total_k2l / len(mcs_per_arc[beam-1][arc])
+            k3l_corr = total_k2l / len(mco_per_arc[beam-1][arc])
+            k4l_corr = total_k2l / len(mcd_per_arc[beam-1][arc])
+
+            kcs = -k2l_corr / env.vv["l.mcs"]
+            kco = -k3l_corr / env.vv["l.mco"]
+            kcd = -k4l_corr / env.vv["l.mcd"]
+
+            if np.isfinite(kcs):
+                env.vv[f"kcs.a{arc}b{beam}"] = kcs
+            if np.isfinite(kco):
+                env.vv[f"kco.a{arc}b{beam}"] = kco
+            if np.isfinite(kcd):
+                env.vv[f"kcd.a{arc}b{beam}"] = kcd
 
 
 def consider_micado(env):
