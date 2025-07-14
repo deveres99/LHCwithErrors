@@ -22,6 +22,8 @@ line = xt.Line.from_madx_sequence(mad.sequence[sequence], apply_madx_errors=Fals
 env = xt.Environment(lines={'lhcb1':line})
 env['lhcb1'].particle_ref = xt.Particles(mass0=xt.PROTON_MASS_EV, gamma0=mad.sequence[sequence].beam.gamma)
 mad.input(f'''
+use, sequence=lhcb1;
+
 on_disp = 0;
 
 myseed               = {seed};
