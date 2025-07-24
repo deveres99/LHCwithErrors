@@ -282,20 +282,25 @@ def assign_spool_pieces(env):
                 total_k3l += env[name].knl[3]
                 total_k4l += env[name].knl[4]
 
-            k2l_corr = total_k2l / len(mcs_per_arc[beam-1][arc])
-            k3l_corr = total_k2l / len(mco_per_arc[beam-1][arc])
-            k4l_corr = total_k2l / len(mcd_per_arc[beam-1][arc])
+            k2l_corr = total_k2l / len(mcs_per_arc[arc]) if len(mcs_per_arc[arc]) != 0 else 0 
+        k3l_corr = total_k3l / len(mco_per_arc[arc]) if len(mco_per_arc[arc]) != 0 else 0
+        k4l_corr = total_k4l / len(mcd_per_arc[arc]) if len(mcd_per_arc[arc]) != 0 else 0
 
+        if beam == 1:
             kcs = -k2l_corr / env.vv["l.mcs"]
             kco = -k3l_corr / env.vv["l.mco"]
             kcd = -k4l_corr / env.vv["l.mcd"]
+        else:
+            kcs = k2l_corr / env.vv["l.mcs"]
+            kco = k3l_corr / env.vv["l.mco"]
+            kcd = k4l_corr / env.vv["l.mcd"]
 
-            if np.isfinite(kcs):
-                env.vv[f"kcs.a{arc}b{beam}"] = kcs
-            if np.isfinite(kco):
-                env.vv[f"kco.a{arc}b{beam}"] = kco
-            if np.isfinite(kcd):
-                env.vv[f"kcd.a{arc}b{beam}"] = kcd
+        if np.isfinite(kcs):
+            env.vv[f"kcs.a{arc}b{beam}"] = kcs
+        if np.isfinite(kco):
+            env.vv[f"kco.a{arc}b{beam}"] = kco
+        if np.isfinite(kcd):
+            env.vv[f"kcd.a{arc}b{beam}"] = kcd
 
 
 def consider_micado(env):
